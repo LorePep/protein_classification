@@ -26,12 +26,12 @@ def main():
     validate_args(args)
 
     if args.create:
-        create_rgbs(args.input)
+        create_rgbs(args.input, args.output_path)
     else:
         print("Nothing to do.")
 
 
-def create_rgbs(input_path: str):
+def create_rgbs(input_path: str, output_path):
     paths = [os.path.join(input_path, f) for f in os.listdir(input_path) if f.endswith(".png")]
     prefixes = get_images_prefixes(paths)
     prefixes_to_rgb = get_rgb_to_prefixes(prefixes, DEFAULT_WIDTH, DEFAULT_HEIGHT)
@@ -39,7 +39,7 @@ def create_rgbs(input_path: str):
     for prefix, rgb in tqdm(prefixes_to_rgb.items(), desc="saving images on disk", unit="images"):
         im = Image.fromarray(rgb)
         base = os.path.basename(prefix)
-        rgb_path = os.path.join(args.output_path, base + ".png")
+        rgb_path = os.path.join(output_path, base + ".png")
         im.save(rgb_path)
 
 
