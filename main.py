@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 from tqdm import tqdm
+from multiprocessing import Pool
 
 from PIL import Image
 
@@ -34,8 +35,8 @@ def create_rgbs(input_path: str):
     paths = [os.path.join(input_path, f) for f in os.listdir(input_path) if f.endswith(".png")]
     prefixes = get_images_prefixes(paths)
     prefixes_to_rgb = get_rgb_to_prefixes(prefixes, DEFAULT_WIDTH, DEFAULT_HEIGHT)
-
-    for prefix, rgb in tqdm(prefixes_to_rgb.items(), info="saving images on disk", unit="images"):
+    
+    for prefix, rgb in tqdm(prefixes_to_rgb.items(), desc="saving images on disk", unit="images"):
         im = Image.fromarray(rgb)
         base = os.path.basename(prefix)
         rgb_path = os.path.join(args.output_path, base + ".png")

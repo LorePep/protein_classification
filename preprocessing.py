@@ -36,7 +36,7 @@ def get_rgb_to_prefixes(prefixes: list, width: int, height: int) -> dict:
 
     
     pool = ThreadPool(processes=NUM_PROCESSES)
-    with tqdm(total=len(prefixes), info="creating rgb images.", unit="images") as pbar:
+    with tqdm(total=len(prefixes), desc="creating rgb images.", unit="images") as pbar:
         for i, _ in tqdm(enumerate(pool.imap(f, prefixes))):
             pbar.update()
 
