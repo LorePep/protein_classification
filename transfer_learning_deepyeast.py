@@ -17,12 +17,13 @@ from deepyeast.utils import preprocess_input
 DEFAULT_WIDTH = 512
 DEFAULT_HEIGHT = 512
 
-
+# Missing label generation, needs to load csv and create the labels with
+# the right shape
 def load_dataset_rg(input_path: str) -> np.ndarray:
     imgs_paths = [os.path.join(input_path, f) for f in os.listdir(input_path) if f.endswith(".png")]
     # We assume the imput data to be RG
     data = np.empty((len(imgs_paths), DEFAULT_WIDTH, DEFAULT_HEIGHT, 2))
-    print(data.shape)
+    
 
     for i, path in enumerate(imgs_paths):
         img = load_img(path)
