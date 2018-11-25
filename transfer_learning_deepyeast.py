@@ -31,4 +31,3 @@ def load_dataset_rg(input_path: str) -> np.ndarray:
 
     return data
 
-
