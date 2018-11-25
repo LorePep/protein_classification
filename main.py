@@ -31,7 +31,7 @@ def main():
 
     if args.create_rgbs:
         create_rgbs(args.input, args.output_path)
-    elif arg.create_rgs:
+    elif args.create_rgs:
         create_rgs(args.input, args.output_path)
     else:
         print("Nothing to do.")
