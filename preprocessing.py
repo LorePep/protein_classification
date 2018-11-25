@@ -33,7 +33,6 @@ def get_rgb_to_prefixes(prefixes: list, width: int, height: int) -> dict:
 
     def f(prefix):
         prefixes_to_rgb[prefix] = get_rgb(prefix, width, height)
-
     
     pool = ThreadPool(processes=NUM_PROCESSES)
     with tqdm(total=len(prefixes), desc="creating rgb images.", unit="images") as pbar:
@@ -41,6 +40,20 @@ def get_rgb_to_prefixes(prefixes: list, width: int, height: int) -> dict:
             pbar.update()
 
     return prefixes_to_rgb
+
+
+def get_rg_to_prefixes(prefixes: list, width: int, height: int) -> dict:
+    prefixes_to_rg = {}
+
+    def f(prefix):
+        prefixes_to_rg[prefix] = get_rg(prefix, width, height)
+    
+    pool = ThreadPool(processes=NUM_PROCESSES)
+    with tqdm(total=len(prefixes), desc="creating rg images.", unit="images") as pbar:
+        for i, _ in tqdm(enumerate(pool.imap(f, prefixes))):
+            pbar.update()
+
+    return prefixes_to_rg
 
 
 def get_rgb(prefix: str, width, height) -> np.ndarray:
@@ -52,4 +65,19 @@ def get_rgb(prefix: str, width, height) -> np.ndarray:
     
     rgb_image = rgb_image / rgb_image.max() * 255
     return rgb_image.astype(np.uint8)
+
+
+def get_rg(prefix: str, width, height) -> np.ndarray:
+    rg_image = np.zeros(shape=(height, width, 3), dtype=np.float)
+
+    for channel, idx in RGB_CHANNEL_TO_INDEX.items():
+        current_image = Image.open(prefix + "_" + channel + ".png")
+        if channel != "green":
+            # All the non-green channels are mapped to the red channel.
+            rg_image[:, :, RGB_CHANNEL_TO_INDEX["red"]] += current_image
+        else:
+            rg_image[:, :, idx] += current_image
+    
+    rg_image = rg_image / rg_image.max() * 255
+    return rg_image.astype(np.uint8)
 
