@@ -6,27 +6,31 @@ import numpy as np
 from PIL import Image
 from numpy.testing import assert_array_almost_equal
 
-from transfer_learning_deepyeast import (
+from load_dataset import (
     load_dataset_rg,
     _parse_label,
     _get_images_ids_to_paths,
     _get_images_ids_to_labels)
 
 FIXTURE_PATH = "testdata"
-FIXTURE_IMG_PATH = "testdata/80ec1c96-bba8-11e8-b2ba-ac1f6b6435d0.png"
+FIXTURE_IMG_PATH = "testdata/firstID.png"
 FIXTURE_LABELS_PATH = "testdata/train.csv"
 
 
-class TestTransferLearning(unittest.TestCase):
+class TestLoadDataset(unittest.TestCase):
 
-    # def test_loda_dataset_rg(self):
-    #     expected = _get_fixture_img(FIXTURE_IMG_PATH)
+    def test_loda_dataset_rg(self):
+        expected_x = _get_fixture_img(FIXTURE_IMG_PATH)
+        expected_y = np.zeros((1, 28))
+        expected_y[0, 16] = 1
+        expected_y[0, 0] = 1
         
-    #     actual = load_dataset_rg(FIXTURE_PATH)
-    #     # 1 image * 512 w * 512 h * 2 channels
-    #     self.assertEqual(actual.size, 524288)
-    #     assert_array_almost_equal(actual[0, :, :, 0], expected[:, :, 0])
-    #     assert_array_almost_equal(actual[0, :, :, 1], expected[:, :, 1])
+        actual_x, actual_y = load_dataset_rg([FIXTURE_IMG_PATH], FIXTURE_LABELS_PATH)
+        # 1 image * 512 w * 512 h * 2 channels
+        self.assertEqual(actual_x.size, 524288)
+        assert_array_almost_equal(actual_x[0, :, :, 0], expected_x[:, :, 0])
+        assert_array_almost_equal(actual_x[0, :, :, 1], expected_x[:, :, 1])
+        assert_array_almost_equal(expected_y, actual_y)
 
     def test_get_images_ids_to_labels(self):
         input_label_file = csv.DictReader(open(FIXTURE_LABELS_PATH))

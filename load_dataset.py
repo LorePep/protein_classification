@@ -23,13 +23,13 @@ NUM_CLASSES = 28
 # load_dataset_rg loads a RG dataset.
 # imgs_path: the paths of the images
 # label_csv_path: the csv with the dataset labels, two columns: id, labels are expected.
-def load_dataset_rg(imgs_path, label_csv_path):
+def load_dataset_rg(imgs_paths, label_csv_path):
     data = np.empty((len(imgs_paths), DEFAULT_WIDTH, DEFAULT_HEIGHT, 2))
     labels = np.empty((len(imgs_paths), 28))
 
     input_label_file = csv.DictReader(open(label_csv_path))
     ids_to_labels = _get_images_ids_to_labels(input_label_file)
-    ids_to_paths = _get_images_ids_to_paths(imgs_path)
+    ids_to_paths = _get_images_ids_to_paths(imgs_paths)
 
     i = 0
     for img_id, path in ids_to_paths.items():
