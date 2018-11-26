@@ -3,6 +3,9 @@ import os
 
 import click
 import keras
+import matplotlib
+matplotlib.use("TKAgg",warn=False, force=True)
+
 import matplotlib.pyplot as plt
 from keras import Model
 from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
@@ -86,7 +89,7 @@ def plot_history(history):
     plt.xlabel("epoch")
     plt.legend(["train", "val"], loc="upper left")
     plt.savefig("loss.png")
-    
+
 
 if __name__ == "__main__":
     main()
