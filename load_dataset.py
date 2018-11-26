@@ -4,16 +4,13 @@ import sys
 
 import keras
 import numpy as np
-
-from keras.layers import Dense
-from keras.models import Model
-from keras.preprocessing.image import (
-    img_to_array,
-    load_img)
-
 from deepyeast.dataset import load_transfer_data
 from deepyeast.models import DeepYeast
 from deepyeast.utils import preprocess_input
+from keras.layers import Dense
+from keras.models import Model
+from keras.preprocessing.image import img_to_array, load_img
+from tqdm import tqdm
 
 DEFAULT_WIDTH = 512
 DEFAULT_HEIGHT = 512
@@ -23,8 +20,8 @@ NUM_CLASSES = 28
 # load_dataset_rg loads a RG dataset.
 # imgs_path: the paths of the images
 # label_csv_path: the csv with the dataset labels, two columns: id, labels are expected.
-def load_dataset_rg(imgs_paths, label_csv_path):
-    data = np.empty((len(imgs_paths), DEFAULT_WIDTH, DEFAULT_HEIGHT, 2))
+def load_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, height: int = DEFAULT_HEIGHT):
+    data = np.empty((len(imgs_paths), width, height, 2))
     labels = np.empty((len(imgs_paths), 28))
 
     input_label_file = csv.DictReader(open(label_csv_path))
@@ -32,7 +29,7 @@ def load_dataset_rg(imgs_paths, label_csv_path):
     ids_to_paths = _get_images_ids_to_paths(imgs_paths)
 
     i = 0
-    for img_id, path in ids_to_paths.items():
+    for img_id, path in tqdm(ids_to_paths.items(), desc="Loading images", total=len(ids_to_paths)):
         img = load_img(path)
         img_array = img_to_array(img)
         data[i, :, :] = img_array[:, :, :2]
