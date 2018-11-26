@@ -56,8 +56,8 @@ def _get_images_ids_to_labels(input_file):
 def _get_images_ids_to_paths(imgs_paths):
     ids_to_paths = {}
 
-    for path in imgs_path:
-        base = os.path.base(path)
+    for path in imgs_paths:
+        base = os.path.basename(path)
         if not base.endswith(".png"):
             raise ValueError("file format not expected")
 
