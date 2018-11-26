@@ -3,6 +3,7 @@ import os
 
 import click
 import keras
+import matplotlib.pyplot as plt
 from keras import Model
 from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 from keras.layers import Dense
@@ -44,7 +45,7 @@ def main(
     imgs_paths = [os.path.join(images_path, f) for f in os.listdir(images_path) if f.endswith(".png")]
     X, y = load_dataset_rg(imgs_paths, labels_path, 64, 64)
 
-    X_train, X_val_test, y_train, y_val_test = model_selection.train_test_split(X, y, test_size=0.4, shuffle=True, random_state=42)
+    X_train, X_val_test, y_train, y_val_test = model_selection.train_test_split(X, y, test_size=0.2, shuffle=True, random_state=42)
     X_val, X_test, y_val, y_test = model_selection.train_test_split(X_val_test, y_val_test, test_size=0.5, shuffle=True, random_state=42)
 
     model.compile(
@@ -53,7 +54,7 @@ def main(
         metrics=["accuracy"],
     )
 
-    model.fit(
+    history = model.fit(
         X_train, y_train,
         batch_size=64,
         epochs=100,
@@ -65,6 +66,27 @@ def main(
         ]
     )
 
+    plot_history(history)
+
+
+def plot_history(history):
+    plt.plot(history.history["acc"])
+    plt.plot(history.history["val_acc"])
+    plt.title("model accuracy")
+    plt.ylabel("accuracy")
+    plt.xlabel("epoch")
+    plt.legend(["train", "val"], loc="upper left")
+    plt.savefig("accuracy.png")
+
+    # summarize history for loss
+    plt.plot(history.history["loss"])
+    plt.plot(history.history["val_loss"])
+    plt.title("model loss")
+    plt.ylabel("loss")
+    plt.xlabel("epoch")
+    plt.legend(["train", "val"], loc="upper left")
+    plt.savefig("loss.png")
+    
 
 if __name__ == "__main__":
     main()
