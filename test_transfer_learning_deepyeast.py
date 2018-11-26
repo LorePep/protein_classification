@@ -5,7 +5,9 @@ import numpy as np
 from PIL import Image
 from numpy.testing import assert_array_almost_equal
 
-from transfer_learning_deepyeast import load_dataset_rg
+from transfer_learning_deepyeast import (
+    load_dataset_rg,
+    _parse_label)
 
 FIXTURE_PATH = "testdata"
 FIXTURE_IMG_PATH = "testdata/80ec1c96-bba8-11e8-b2ba-ac1f6b6435d0.png"
@@ -13,14 +15,22 @@ FIXTURE_IMG_PATH = "testdata/80ec1c96-bba8-11e8-b2ba-ac1f6b6435d0.png"
 
 class TestTransferLearning(unittest.TestCase):
 
-    def test_loda_dataset_rg(self):
-        expected = _get_fixture_img(FIXTURE_IMG_PATH)
+    # def test_loda_dataset_rg(self):
+    #     expected = _get_fixture_img(FIXTURE_IMG_PATH)
         
-        actual = load_dataset_rg(FIXTURE_PATH)
-        # 1 image * 512 w * 512 h * 2 channels
-        self.assertEqual(actual.size, 524288)
-        assert_array_almost_equal(actual[0, :, :, 0], expected[:, :, 0])
-        assert_array_almost_equal(actual[0, :, :, 1], expected[:, :, 1])
+    #     actual = load_dataset_rg(FIXTURE_PATH)
+    #     # 1 image * 512 w * 512 h * 2 channels
+    #     self.assertEqual(actual.size, 524288)
+    #     assert_array_almost_equal(actual[0, :, :, 0], expected[:, :, 0])
+    #     assert_array_almost_equal(actual[0, :, :, 1], expected[:, :, 1])
+
+    def test_parse_label(self):
+        actual = _parse_label("2 0 1")
+        expected = np.zeros((1, 28))
+        expected[0, 0] = 1
+        expected[0, 1] = 1
+        expected[0, 2] = 1
+        assert_array_almost_equal(expected, actual)
 
 
 def _get_fixture_img(img_path):
