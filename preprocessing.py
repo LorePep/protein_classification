@@ -12,6 +12,7 @@ DEFAULT_WIDTH = 512
 DEFAULT_HEIGHT = 512
 RGB_CHANNEL_TO_INDEX = {"red": 0, "green": 1, "blue": 2}
 NUM_PROCESSES = 8
+NUMBER_OF_SUBIMAGES = 30
 
 
 def main() -> None:
@@ -22,6 +23,8 @@ def main() -> None:
                         help="create rgb for images")
     parser.add_argument("--create-rg", dest="create_rgs", action="store_true",
                         help="create rg for images")
+    parser.add_argument("--create-windows", dest="create_win", action="store_true",
+                        help="create windowed dataset for images")
 
     args = parser.parse_args()
     validate_args(args)
@@ -30,6 +33,8 @@ def main() -> None:
         create_rgbs(args.input, args.output_path)
     elif args.create_rgs:
         create_rgs(args.input, args.output_path)
+    elif args.create_win:
+        create_win(args.input, args.output_path)
     else:
         print("Nothing to do.")
 
@@ -119,7 +124,7 @@ def create_rgbs(input_path: str, output_path: str) -> None:
         im.save(rgb_path)
 
 
-def create_rgs(input_path: str, output_path: str, img_size: int = 64) -> None:
+def create_rgs(input_path: str, output_path: str, img_size: int = 512) -> None:
     paths = [os.path.join(input_path, f) for f in os.listdir(input_path) if f.endswith(".png")]
     prefixes = get_images_prefixes(paths)
     prefixes_to_rg = get_rg_to_prefixes(prefixes, DEFAULT_WIDTH, DEFAULT_HEIGHT)
@@ -130,12 +135,35 @@ def create_rgs(input_path: str, output_path: str, img_size: int = 64) -> None:
         rg_path = os.path.join(output_path, f"{base}.png")
         im.save(rg_path)
 
+def create_win(input_path: str, output_path: str, win_size: int = 64) -> None:
+    paths = [os.path.join(input_path, f) for f in os.listdir(input_path) if f.endswith(".png")]
+    pool = ThreadPool(processes=NUM_PROCESSES)
+
+    def f(path):
+        base = os.path.basename(path)
+        img = Image.open(path)
+    
+        for i in range(NUMBER_OF_SUBIMAGES):
+            im =  select_random_windows(Image.fromarray(rgb), win_size)
+            win_path = os.path.join(output_path, "win",f"{base}_{i}.png")
+            im.save(win_path)
         
+    
+    with tqdm(total=len(paths), desc="creating windowed images.", unit="images") as pbar:
+        for i, _ in tqdm(enumerate(pool.imap(f, paths))):
+            pbar.update()
+
+
 def validate_args(args):
     if not os.path.isdir(args.output_path):
         print("Specified output path {} is not a directory".format(args.output_path))
         sys.exit()
     
+
+def select_random_windows(arr, window_size):
+    offsets = np.random.randint(0, arr.shape[1]-window_size+1, size=arr.shape[0])
+    return arr[np.arange(arr.shape[0])[:,None], offsets[:,None] + np.arange(window_size)]
+
 
 if __name__ == "__main__":
     main()

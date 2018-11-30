@@ -32,8 +32,7 @@ def main(
     weights_path: str,
     images_path: str,
     labels_path: str,
-    log_path: str,
-) -> None:
+    log_path: str) -> None:
     logging.info("Loading base model")
     base_model = DeepYeast()
     base_model.load_weights(weights_path)
