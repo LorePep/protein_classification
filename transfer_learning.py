@@ -64,7 +64,7 @@ def main(
 
     history = model.fit(
         X_train, y_train,
-        batch_size=64,
+        batch_size=1024,
         epochs=100,
         validation_data=(X_val, y_val),
         callbacks=[

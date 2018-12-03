@@ -25,6 +25,8 @@ def main() -> None:
                         help="create rg for images")
     parser.add_argument("--create-windows", dest="create_win", action="store_true",
                         help="create windowed dataset for images")
+    parser.add_argument("--discard-images", dest="discard_bad", action="store_true",
+                        help="filter bad images")
 
     args = parser.parse_args()
     validate_args(args)
@@ -35,6 +37,8 @@ def main() -> None:
         create_rgs(args.input, args.output_path)
     elif args.create_win:
         create_win(args.input, args.output_path)
+    elif args.discard_bad:
+        discard_bad_images(args.input, args.output_path)
     else:
         print("Nothing to do.")
 
@@ -144,8 +148,8 @@ def create_win(input_path: str, output_path: str, win_size: int = 64) -> None:
         img = Image.open(path)
     
         for i in range(NUMBER_OF_SUBIMAGES):
-            im =  select_random_windows(Image.fromarray(rgb), win_size)
-            win_path = os.path.join(output_path, "win",f"{base}_{i}.png")
+            im =  Image.fromarray(select_random_window(np.array(img), win_size))
+            win_path = os.path.join(output_path, "win",f"{base[:-4]}_{i}.png")
             im.save(win_path)
         
     
@@ -154,17 +158,39 @@ def create_win(input_path: str, output_path: str, win_size: int = 64) -> None:
             pbar.update()
 
 
+
+def discard_bad_images(input_path: str, output_path: str) -> None:
+    paths = [os.path.join(input_path, f) for f in os.listdir(input_path) if f.endswith(".png")]
+    pool = ThreadPool(processes=NUM_PROCESSES)
+
+    def f(path):
+        base = os.path.basename(path)
+        img = Image.open(path)
+
+        if is_image_good(np.array(img)): 
+            new_img_path = os.path.join(output_path, "filt", base)
+            img.save(new_img_path)
+        
+    
+    with tqdm(total=len(paths), desc="creating windowed images.", unit="images") as pbar:
+        for i, _ in tqdm(enumerate(pool.imap(f, paths))):
+            pbar.update()
+
+
+def is_image_good(img: np.ndarray) -> bool:
+    return img.mean() > 5
+
+
 def validate_args(args):
     if not os.path.isdir(args.output_path):
         print("Specified output path {} is not a directory".format(args.output_path))
         sys.exit()
     
 
-def select_random_windows(arr, window_size):
-    offsets = np.random.randint(0, arr.shape[1]-window_size+1, size=arr.shape[0])
-    return arr[np.arange(arr.shape[0])[:,None], offsets[:,None] + np.arange(window_size)]
+def select_random_window(arr, window_size):
+    offset = np.random.randint(0, arr.shape[1]-window_size+1)
+    return arr[offset:offset+window_size, offset:offset+window_size]
 
 
 if __name__ == "__main__":
     main()
-

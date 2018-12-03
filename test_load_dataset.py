@@ -65,6 +65,17 @@ class TestLoadDataset(unittest.TestCase):
 
         self.assertEqual(expected, actual)
 
+    def test_get_images_ids_to_paths_multi(self):
+        paths = ["foo/oneID_1.png", "foo/oneID_2.png", "bar/anotherID_1.png"]
+        actual = _get_images_ids_to_paths(paths)
+
+        expected = {
+            "oneID": ["foo/oneID_1.png", "foo/oneID_2.png"],
+            "anotherID":["bar/anotherID_1.png"]
+        }
+
+        self.assertEqual(expected, actual)
+
     def test_get_images_ids_to_paths_bad(self):
         paths = ["foo/badpath"]
         with self.assertRaises(ValueError):

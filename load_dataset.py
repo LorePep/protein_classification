@@ -21,6 +21,7 @@ NUM_CLASSES = 28
 # imgs_path: the paths of the images
 # label_csv_path: the csv with the dataset labels, two columns: id, labels are expected.
 def load_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, height: int = DEFAULT_HEIGHT):
+    imgs_paths = imgs_paths[:5000]
     data = np.empty((len(imgs_paths), width, height, 2))
     labels = np.empty((len(imgs_paths), 28))
 
@@ -30,11 +31,19 @@ def load_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, heig
 
     i = 0
     for img_id, path in tqdm(ids_to_paths.items(), desc="Loading images", total=len(ids_to_paths)):
-        img = load_img(path)
-        img_array = img_to_array(img)
-        data[i, :, :] = img_array[:, :, :2]
-        labels[i, :] = ids_to_labels[img_id]
-        i += 1
+        if isinstance(path, list):
+            for p in path:
+                img = load_img(p)
+                img_array = img_to_array(img)
+                data[i, :, :] = img_array[:, :, :2]
+                labels[i, :] = ids_to_labels[img_id]
+                i += 1
+        else:
+            img = load_img(path)
+            img_array = img_to_array(img)
+            data[i, :, :] = img_array[:, :, :2]
+            labels[i, :] = ids_to_labels[img_id]
+            i += 1
 
     return data, labels
 
@@ -58,8 +67,15 @@ def _get_images_ids_to_paths(imgs_paths):
         if not base.endswith(".png"):
             raise ValueError("file format not expected")
 
-        img_id = base[:-4]
-        ids_to_paths[img_id] = path
+        if "_" in base:
+            img_id = base.split("_")[0]
+            if img_id in ids_to_paths:
+                ids_to_paths[img_id].append(path)
+            else:
+                ids_to_paths[img_id] = [path]
+        else:
+            img_id = base[:-4]
+            ids_to_paths[img_id] = path
 
     return ids_to_paths
 
