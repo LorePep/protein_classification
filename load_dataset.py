@@ -21,7 +21,6 @@ NUM_CLASSES = 28
 # imgs_path: the paths of the images
 # label_csv_path: the csv with the dataset labels, two columns: id, labels are expected.
 def load_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, height: int = DEFAULT_HEIGHT):
-    imgs_paths = imgs_paths[:5000]
     data = np.empty((len(imgs_paths), width, height, 2))
     labels = np.empty((len(imgs_paths), 28))
 
@@ -29,8 +28,9 @@ def load_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, heig
     ids_to_labels = _get_images_ids_to_labels(input_label_file)
     ids_to_paths = _get_images_ids_to_paths(imgs_paths)
 
+    total = sum(map(lambda x: len(x) if isinstance(x, list) else 1, ids_to_paths.values()))
     i = 0
-    for img_id, path in tqdm(ids_to_paths.items(), desc="Loading images", total=len(ids_to_paths)):
+    for img_id, path in tqdm(ids_to_paths.items(), desc="Loading images", total=total):
         if isinstance(path, list):
             for p in path:
                 img = load_img(p)
