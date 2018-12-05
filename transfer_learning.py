@@ -3,7 +3,6 @@ import os
 
 import click
 import keras
-import hickle as hkl 
 import matplotlib
 matplotlib.use("TKAgg",warn=False, force=True)
 
@@ -52,9 +51,6 @@ def main(
 
     X_train, X_val_test, y_train, y_val_test = model_selection.train_test_split(X, y, test_size=0.2, shuffle=True, random_state=42)
     X_val, X_test, y_val, y_test = model_selection.train_test_split(X_val_test, y_val_test, test_size=0.5, shuffle=True, random_state=42)
-
-    hkl.dump([X_train, y_train], "training_set.hkl")
-    hkl.dump([X_val, y_val], "validation_set.hkl")
 
     model.compile(
         loss=keras.losses.categorical_crossentropy,

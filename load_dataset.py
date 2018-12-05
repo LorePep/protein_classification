@@ -21,7 +21,7 @@ NUM_CLASSES = 28
 # imgs_path: the paths of the images
 # label_csv_path: the csv with the dataset labels, two columns: id, labels are expected.
 def load_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, height: int = DEFAULT_HEIGHT):
-    data = np.empty((len(imgs_paths), width, height, 2))
+    data = np.memmap("dataset.dat", dtype="int8", mode='w+', shape=(len(imgs_paths), width, height, 2))
     labels = np.empty((len(imgs_paths), 28))
 
     input_label_file = csv.DictReader(open(label_csv_path))
@@ -30,20 +30,28 @@ def load_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, heig
 
     total = sum(map(lambda x: len(x) if isinstance(x, list) else 1, ids_to_paths.values()))
     i = 0
-    for img_id, path in tqdm(ids_to_paths.items(), desc="Loading images", total=total):
+    pbar = tqdm(desc="Loading images", total=total)
+    for img_id, path in ids_to_paths.items():
         if isinstance(path, list):
             for p in path:
                 img = load_img(p)
                 img_array = img_to_array(img)
-                data[i, :, :] = img_array[:, :, :2]
+                tmp = img_array[:, :, :2]
+                tmp = (tmp - np.mean(tmp)) / np.std(tmp)
+                data[i, :, :]  = tmp
                 labels[i, :] = ids_to_labels[img_id]
                 i += 1
+                pbar.update(1)
+
         else:
             img = load_img(path)
             img_array = img_to_array(img)
-            data[i, :, :] = img_array[:, :, :2]
+            tmp = img_array[:, :, :2]
+            tmp = (tmp - np.mean(tmp)) / np.std(tmp)
+            data[i, :, :]  = tmp
             labels[i, :] = ids_to_labels[img_id]
             i += 1
+            pbar.update(1)
 
     return data, labels
 
