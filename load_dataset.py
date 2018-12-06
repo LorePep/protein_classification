@@ -21,8 +21,8 @@ NUM_CLASSES = 28
 # imgs_path: the paths of the images
 # label_csv_path: the csv with the dataset labels, two columns: id, labels are expected.
 def load_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, height: int = DEFAULT_HEIGHT):
-    data = np.memmap("dataset.dat", dtype="int8", mode='w+', shape=(len(imgs_paths), width, height, 2))
-    labels = np.empty((len(imgs_paths), 28))
+    data = np.memmap("dataset.dat", dtype="float32", mode='w+', shape=(len(imgs_paths), width, height, 2))
+    labels = np.memmap("labels.dat", dtype="float32", mode='w+', shape=(len(imgs_paths), 28))
 
     input_label_file = csv.DictReader(open(label_csv_path))
     ids_to_labels = _get_images_ids_to_labels(input_label_file)
@@ -36,9 +36,7 @@ def load_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, heig
             for p in path:
                 img = load_img(p)
                 img_array = img_to_array(img)
-                tmp = img_array[:, :, :2]
-                tmp = (tmp - np.mean(tmp)) / np.std(tmp)
-                data[i, :, :]  = tmp
+                data[i, :, :]  = img_array[:, :, :2]
                 labels[i, :] = ids_to_labels[img_id]
                 i += 1
                 pbar.update(1)
@@ -46,12 +44,12 @@ def load_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, heig
         else:
             img = load_img(path)
             img_array = img_to_array(img)
-            tmp = img_array[:, :, :2]
-            tmp = (tmp - np.mean(tmp)) / np.std(tmp)
-            data[i, :, :]  = tmp
+            data[i, :, :]  = img_array[:, :, :2]
             labels[i, :] = ids_to_labels[img_id]
             i += 1
             pbar.update(1)
+
+    pbar.close()
 
     return data, labels
 
