@@ -4,6 +4,7 @@ import os
 import click
 import keras
 import matplotlib
+import numpy as np
 matplotlib.use("TKAgg",warn=False, force=True)
 
 import matplotlib.pyplot as plt
@@ -12,6 +13,7 @@ from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 from keras.layers import Dense
 from deepyeast.models import DeepYeast
 from sklearn import model_selection
+from sklearn.preprocessing import normalize
 from sklearn.metrics import confusion_matrix
 
 
@@ -24,14 +26,13 @@ logging.getLogger().setLevel(logging.INFO)
 
 @click.command(help="Fine tune the DeepYeast model.")
 @click.option("-w", "--weights-path", prompt=True, type=str)
-@click.option("-i", "--images-path", prompt=True, type=str)
+@click.option("-i", "--dataset-path", prompt=True, type=str)
 @click.option("-l", "--labels-path", prompt=True, type=str)
-@click.option("--log-path", prompt=True, type=str)
 def main(
     weights_path: str,
-    images_path: str,
+    dataset_path: str,
     labels_path: str,
-    log_path: str) -> None:
+) -> None:
     logging.info("Loading base model")
     base_model = DeepYeast()
     base_model.load_weights(weights_path)
@@ -46,11 +47,23 @@ def main(
     for layer in model.layers[:23]:
         layer.trainable = False
 
-    imgs_paths = [os.path.join(images_path, f) for f in os.listdir(images_path) if f.endswith(".png")]
-    X, y = load_dataset_rg(imgs_paths, labels_path, 64, 64)
+    if dataset_path.endswith(".dat") and labels_path.endswith(".dat"):
+        X = np.memmap(dataset_path, dtype='float32', mode='r', shape=(638716, 64, 64, 2))
+        y = np.memmap(labels_path, dtype='float32', mode='r', shape=(638716, 28))
+    else:
+        imgs_paths = [os.path.join(dataset_path, f) for f in os.listdir(dataset_path) if f.endswith(".png")]
+        X, y = load_dataset_rg(imgs_paths, labels_path, 64, 64)
 
     X_train, X_val_test, y_train, y_val_test = model_selection.train_test_split(X, y, test_size=0.2, shuffle=True, random_state=42)
     X_val, X_test, y_val, y_test = model_selection.train_test_split(X_val_test, y_val_test, test_size=0.5, shuffle=True, random_state=42)
+    
+    X_train /= 255.
+    X_train -= 0.5
+    X_train *= 2.
+
+    X_val /= 255.
+    X_val -= 0.5
+    X_val *= 2. 
 
     model.compile(
         loss=keras.losses.categorical_crossentropy,
