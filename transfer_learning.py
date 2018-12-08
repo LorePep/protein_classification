@@ -13,9 +13,7 @@ from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 from keras.layers import Dense
 from deepyeast.models import DeepYeast
 from sklearn import model_selection
-from sklearn.preprocessing import normalize
 from sklearn.metrics import confusion_matrix
-
 
 from load_dataset import load_dataset_rg
 

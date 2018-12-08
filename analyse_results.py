@@ -3,7 +3,6 @@ import os
 
 import click
 import keras
-import hickle as hkl 
 import numpy as np
 from deepyeast.models import DeepYeast
 from sklearn.metrics import fbeta_score
@@ -14,7 +13,6 @@ from keras.layers import Dense
 from sklearn.metrics import f1_score
 from tabulate import tabulate
 from timeit import default_timer as timer
-
 
 logging.getLogger().setLevel(logging.INFO)
 
@@ -47,20 +45,30 @@ def main(
     X_val /= 255.
     X_val -= 0.5
     X_val *= 2. 
+
+    X_test /= 255.
+    X_test -= 0.5
+    X_test *= 2.
     
-
-    # logging.info("running training set")
-    # y_pred_train = model.predict(X_train, batch_size=1024, verbose=1, steps=None)
-    # logging.info("running validation set")
+    logging.info("running training set")
+    y_pred_train = model.predict(X_train, batch_size=1024, verbose=1, steps=None)
+    logging.info("running validation set")
     y_pred_val = model.predict(X_val, batch_size=1014, verbose=1, steps=None)
-    print(y_pred_val.shape)
+    logging.info("running test set")
+    y_pred_test = model.predict(X_test, batch_size=1014, verbose=1, steps=None)
 
-    # f1_train, _ = best_f2_score(y_train, y_pred_train)
-    f1_val, x_val = best_f2_score(y_val, y_pred_val)
-    print(f1_val, x_val)    
+    f1_train, th_train = best_f2_score(y_train, y_pred_train)
+    f1_val, th_val = best_f2_score(y_val, y_pred_val)
 
-    # print(tabulate([["Training", "{0:.2f}".format(f1_train)],
-    #      ["Validation", "{0:.2f}".format(f1_val)]], headers=["Dataset", "F1_macro"]))
+    y_pred_test = _apply_thresholds(y_pred_test, th_val)
+
+    f1_test = f1_score(y_test, y_pred_test, average="macro")  
+
+    print(tabulate([
+        ["Training", "{0:.2f}".format(f1_train)],
+        ["Validation", "{0:.2f}".format(f1_val)],
+        ["Test", "{0:.2f}".format(f1_test)],
+        ], headers=["Dataset", "F1_macro"]))
 
 
 
@@ -103,6 +111,17 @@ def best_f2_score(true_labels, predictions):
     
     score = - opt_output.fun
     return score, opt_output.x
+
+
+def _apply_thresholds(pred, th):
+    if pred.shape[1] != len(th):
+        raise ValueError("predicions and thresholds must have same shape")
+
+    for i in range(pred.shape[1]):
+        pred[:, i][pred[:, i] < th[i]] = 0
+        pred[:, i][pred[:, i] >= th[i]] = 1
+
+    return pred
 
 
 if __name__ == "__main__":

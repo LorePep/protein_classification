@@ -19,7 +19,7 @@ FIXTURE_LABELS_PATH = "testdata/train.csv"
 
 class TestLoadDataset(unittest.TestCase):
 
-    def test_loda_dataset_rg(self):
+    def test_load_dataset_rg(self):
         expected_x = _get_fixture_img(FIXTURE_IMG_PATH)
         expected_y = np.zeros((1, 28))
         expected_y[0, 16] = 1
