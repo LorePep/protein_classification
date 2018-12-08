@@ -26,10 +26,12 @@ logging.getLogger().setLevel(logging.INFO)
 @click.option("-w", "--weights-path", prompt=True, type=str)
 @click.option("-i", "--dataset-path", prompt=True, type=str)
 @click.option("-l", "--labels-path", prompt=True, type=str)
+@click.option('--use-focal', '-f', is_flag=True)
 def main(
     weights_path: str,
     dataset_path: str,
     labels_path: str,
+    use_focal: bool,
 ) -> None:
     logging.info("Loading base model")
     base_model = DeepYeast()
@@ -63,11 +65,18 @@ def main(
     X_val -= 0.5
     X_val *= 2. 
 
-    model.compile(
-        loss=keras.losses.categorical_crossentropy,
-        optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9, nesterov=True),
-        metrics=["accuracy"],
-    )
+    if use_focal:
+        model.compile(
+            loss=[_focal_loss(gamma=2,alpha=0.75)],
+            optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9, nesterov=True),
+            metrics=["accuracy"],
+        )
+    else:
+        model.compile(
+            loss=keras.losses.categorical_crossentropy,
+            optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9, nesterov=True),
+            metrics=["accuracy"],
+        )
 
     history = model.fit(
         X_train, y_train,
@@ -103,6 +112,14 @@ def plot_history(history):
     plt.xlabel("epoch")
     plt.legend(["train", "val"], loc="upper left")
     plt.savefig("loss.png")
+
+
+def _focal_loss(gamma=2, alpha=0.75):
+    def focal_loss_fixed(y_true, y_pred):
+        pt_1 = tf.where(tf.equal(y_true, 1), y_pred, tf.ones_like(y_pred))
+        pt_0 = tf.where(tf.equal(y_true, 0), y_pred, tf.zeros_like(y_pred))
+        return -K.sum(alpha * K.pow(1. - pt_1, gamma) * K.log(pt_1))-K.sum((1-alpha) * K.pow( pt_0, gamma) * K.log(1. - pt_0))
+    return focal_loss_fixed
 
 
 if __name__ == "__main__":
