@@ -18,8 +18,10 @@ logging.getLogger().setLevel(logging.INFO)
 
 @click.command(help="Analyse model results.")
 @click.option("-w", "--weights-path", prompt=True, type=str)
+@click.option("-d", "--use-dat", prompt=True, type=bool)
 def main(
     weights_path: str,
+    use_dat: bool,
 ) -> None:
     logging.info("Loading base model")
     base_model = DeepYeast()
@@ -32,8 +34,12 @@ def main(
     model.load_weights(weights_path)
 
     logging.info("loading data")
-    X = np.memmap("dataset.dat", dtype='float32', mode='r', shape=(638716, 64, 64, 2))
-    y = np.memmap("labels.dat", dtype='float32', mode='r', shape=(638716, 28))
+    if use_dat:
+        X = np.memmap("dataset.dat", dtype='float32', mode='r', shape=(638716, 64, 64, 2))
+        y = np.memmap("labels.dat", dtype='float32', mode='r', shape=(638716, 28))
+    else:
+        imgs_paths = [os.path.join(dataset_path, f) for f in os.listdir(dataset_path) if f.endswith(".png")]
+        X, y = load_dataset_rg(imgs_paths, labels_path, 64, 64)
 
     X_train, X_val_test, y_train, y_val_test = model_selection.train_test_split(X, y, test_size=0.2, shuffle=True, random_state=42)
     X_val, X_test, y_val, y_test = model_selection.train_test_split(X_val_test, y_val_test, test_size=0.5, shuffle=True, random_state=42)
