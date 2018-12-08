@@ -22,10 +22,12 @@ logging.getLogger().setLevel(logging.INFO)
 @click.option("-w", "--weights-path", prompt=True, type=str)
 @click.option("-i", "--dataset-path", prompt=True, type=str)
 @click.option("-l", "--labels-path", prompt=True, type=str)
+@click.option("-b", "--batch-size", prompt=True, type=int)
 def main(
     weights_path: str,
     dataset_path: str,
     labels_path: str,
+    batch_size: int,
 ) -> None:
     logging.info("Loading base model")
     base_model = DeepYeast()
@@ -61,11 +63,11 @@ def main(
     X_test *= 2.
     
     logging.info("running training set")
-    y_pred_train = model.predict(X_train, batch_size=1024, verbose=1, steps=None)
+    y_pred_train = model.predict(X_train, batch_size=batch_size, verbose=1, steps=None)
     logging.info("running validation set")
-    y_pred_val = model.predict(X_val, batch_size=1014, verbose=1, steps=None)
+    y_pred_val = model.predict(X_val, batch_size=1024, verbose=1, steps=None)
     logging.info("running test set")
-    y_pred_test = model.predict(X_test, batch_size=1014, verbose=1, steps=None)
+    y_pred_test = model.predict(X_test, batch_size=1024, verbose=1, steps=None)
 
     f1_train, th_train = best_f2_score(y_train, y_pred_train)
     f1_val, th_val = best_f2_score(y_val, y_pred_val)
