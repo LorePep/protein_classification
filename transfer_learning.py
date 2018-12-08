@@ -53,7 +53,7 @@ def main(
         X, y = load_dataset_rg(imgs_paths, labels_path, 64, 64)
 
     X_train, X_val_test, y_train, y_val_test = model_selection.train_test_split(X, y, test_size=0.2, shuffle=True, random_state=42)
-    X_val, X_test, y_val, y_test = model_selection.train_test_split(X_val_test, y_val_test, test_size=0.5, shuffle=True, random_state=42)
+    X_val, _, y_val, _ = model_selection.train_test_split(X_val_test, y_val_test, test_size=0.5, shuffle=True, random_state=42)
     
     X_train /= 255.
     X_train -= 0.5

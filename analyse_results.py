@@ -14,14 +14,18 @@ from sklearn.metrics import f1_score
 from tabulate import tabulate
 from timeit import default_timer as timer
 
+from load_dataset import load_dataset_rg
+
 logging.getLogger().setLevel(logging.INFO)
 
 @click.command(help="Analyse model results.")
 @click.option("-w", "--weights-path", prompt=True, type=str)
-@click.option("-d", "--use-dat", prompt=True, type=bool)
+@click.option("-i", "--dataset-path", prompt=True, type=str)
+@click.option("-l", "--labels-path", prompt=True, type=str)
 def main(
     weights_path: str,
-    use_dat: bool,
+    dataset-path: str,
+    labels-path: str,
 ) -> None:
     logging.info("Loading base model")
     base_model = DeepYeast()
@@ -34,9 +38,9 @@ def main(
     model.load_weights(weights_path)
 
     logging.info("loading data")
-    if use_dat:
-        X = np.memmap("dataset.dat", dtype='float32', mode='r', shape=(638716, 64, 64, 2))
-        y = np.memmap("labels.dat", dtype='float32', mode='r', shape=(638716, 28))
+    if dataset_path.endswith(".dat") and labels_path.endswith(".dat"):
+        X = np.memmap(dataset_path, dtype='float32', mode='r', shape=(638716, 64, 64, 2))
+        y = np.memmap(labels_path, dtype='float32', mode='r', shape=(638716, 28))
     else:
         imgs_paths = [os.path.join(dataset_path, f) for f in os.listdir(dataset_path) if f.endswith(".png")]
         X, y = load_dataset_rg(imgs_paths, labels_path, 64, 64)
