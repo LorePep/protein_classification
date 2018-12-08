@@ -24,8 +24,8 @@ logging.getLogger().setLevel(logging.INFO)
 @click.option("-l", "--labels-path", prompt=True, type=str)
 def main(
     weights_path: str,
-    dataset-path: str,
-    labels-path: str,
+    dataset_path: str,
+    labels_path: str,
 ) -> None:
     logging.info("Loading base model")
     base_model = DeepYeast()
