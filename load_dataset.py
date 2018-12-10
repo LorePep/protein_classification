@@ -42,7 +42,9 @@ def create_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, he
         validation_idxs = hickle.load(f)
 
     train_dim = _get_dim(training_idxs, imgs_paths)
-    val_dim = _get_dim(val_idxs, imgs_paths)
+    print("getting training of size {}".format(train_dim))
+    val_dim = _get_dim(validation_idxs, imgs_paths)
+    print("getting validation of size {}".format(validation_idxs))
     
     train = np.memmap("training.dat", dtype="float32", mode='w', shape=(train_dim, width, height, 2))
     train_labels = np.memmap("training_labels.dat", dtype="float32", mode='w', shape=(train_dim, 28))
