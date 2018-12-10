@@ -26,8 +26,9 @@ NUM_CLASSES = 28
 def main(
     images_path,
     labels_csv_path
-):
-    create_dataset_rg(images_path, labels_csv_path)
+):  
+    paths  = [os.path.join(images_path, f) for f in os.listdir(images_path) if f.endswith(".png")]
+    create_dataset_rg(paths, labels_csv_path)
 
 
 # load_dataset_rg loads a RG dataset.
@@ -40,27 +41,31 @@ def create_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, he
     with open("val_idxs.hkl") as f:
         validation_idxs = hickle.load(f)
 
-    train = np.memmap("training.dat", dtype="float32", mode='w+', shape=(1000, width, height, 2))
-    train_labels = np.memmap("training_labels.dat", dtype="float32", mode='w+', shape=(1000, 28))
+    train_dim = _get_dim(training_idxs, imgs_path)
+    val_dim = _get_dim(val_idxs, imgs_path)
+    
+    train = np.memmap("training.dat", dtype="float32", mode='w', shape=(train_dim, width, height, 2))
+    train_labels = np.memmap("training_labels.dat", dtype="float32", mode='w', shape=(train_dim, 28))
 
-    val = np.memmap("validation.dat", dtype="float32", mode='w+', shape=(1000, width, height, 2))
-    val_labels = np.memmap("validation_labels.dat", dtype="float32", mode='w+', shape=(1000, 28))
+    val = np.memmap("validation.dat", dtype="float32", mode='w', shape=(val_dim, width, height, 2))
+    val_labels = np.memmap("validation_labels.dat", dtype="float32", mode='w', shape=(val_dim, 28))
 
     input_label_file = csv.DictReader(open(label_csv_path))
     ids_to_labels = _get_images_ids_to_labels(input_label_file)
     ids_to_paths = _get_images_ids_to_paths(imgs_paths)
 
+    train_idx_list = []
+    val_idx_list = []
+
     i = 0
     pbar = tqdm(desc="Loading images")
     for img_id, path in ids_to_paths.items():
         if img_id in training_idxs:
+            train_idx_list.append(img_id)
             if isinstance(path, list):
                 for p in path:
                     img = load_img(p)
                     img_array = img_to_array(img)
-                    if i >= train.shape[0]:
-                        train.resize((train.shape[0]+1, width, height, 2))
-                        train_labels((train.shape[0]+1, 28))
                     train[i, :, :]  = img_array[:, :, :2]
                     train_labels[i, :] = ids_to_labels[img_id]
                     i += 1
@@ -79,13 +84,11 @@ def create_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, he
     pbar = tqdm(desc="Loading images")
     for img_id, path in ids_to_paths.items():
         if img_id in validation_idxs:
+            val_idx_list.append(img_id)
             if isinstance(path, list):
                 for p in path:
                     img = load_img(p)
                     img_array = img_to_array(img)
-                    if i >= val.shape[0]:
-                        val.resize((val.shape[0]+1, width, height, 2))
-                        val_labels((val.shape[0]+1, 28))
                     val[i, :, :]  = img_array[:, :, :2]
                     val_labels[i, :] = ids_to_labels[img_id]
                     i += 1
@@ -93,15 +96,29 @@ def create_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, he
             else:
                 img = load_img(path)
                 img_array = img_to_array(img)
-                if i >= val.shape[0]:
-                    val.resize((val.shape[0]+1, width, height, 2))
-                    val_labels((val.shape[0]+1, 28))
                 val[i, :, :]  = img_array[:, :, :2]
                 val_labels[i, :] = ids_to_labels[img_id]
                 i += 1
                 pbar.update(1)
 
     pbar.close()
+
+    with open("train_actual_idxs.hkl") as f:
+        hickle.dump(train_idx_list, f)
+    
+    with open("val_actual_idxs.hkl") as f:
+        hickle.dump(val_idx_list, f)
+
+
+def _get_dim(idxs, file_list):
+    dim = 0
+    for f in file_list:
+        for idx in idxs:
+            if idx in f:
+                dim += 1
+                break
+
+    return dim
 
 
 def _get_images_ids_to_labels(input_file):
