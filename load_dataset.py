@@ -25,10 +25,10 @@ NUM_CLASSES = 28
 @click.option("-l", "--labels-path", prompt=True, type=str)
 def main(
     images_path,
-    labels_csv_path
+    labels_path,
 ):  
     paths  = [os.path.join(images_path, f) for f in os.listdir(images_path) if f.endswith(".png")]
-    create_dataset_rg(paths, labels_csv_path)
+    create_dataset_rg(paths, labels_path)
 
 
 # load_dataset_rg loads a RG dataset.
