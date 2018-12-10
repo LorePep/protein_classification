@@ -2,6 +2,8 @@ import os
 import csv
 import sys
 
+import click
+import hickle
 import keras
 import numpy as np
 from deepyeast.dataset import load_transfer_data
@@ -17,41 +19,89 @@ DEFAULT_HEIGHT = 512
 
 NUM_CLASSES = 28
 
+
+@click.command(help="Create dataset.")
+@click.option("-i", "--images-path", prompt=True, type=str)
+@click.option("-l", "--labels-path", prompt=True, type=str)
+def main(
+    images_path,
+    labels_csv_path
+):
+    create_dataset_rg(images_path, labels_csv_path)
+
+
 # load_dataset_rg loads a RG dataset.
 # imgs_path: the paths of the images
 # label_csv_path: the csv with the dataset labels, two columns: id, labels are expected.
-def load_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, height: int = DEFAULT_HEIGHT):
-    data = np.memmap("dataset.dat", dtype="float32", mode='w+', shape=(len(imgs_paths), width, height, 2))
-    labels = np.memmap("labels.dat", dtype="float32", mode='w+', shape=(len(imgs_paths), 28))
+def create_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, height: int = DEFAULT_HEIGHT):
+    with open("training_idxs.hkl") as f:
+        training_idxs = hickle.load(f)
+
+    with open("val_idxs.hkl") as f:
+        validation_idxs = hickle.load(f)
+
+    train = np.memmap("training.dat", dtype="float32", mode='w+', shape=(1000, width, height, 2))
+    train_labels = np.memmap("training_labels.dat", dtype="float32", mode='w+', shape=(1000, 28))
+
+    val = np.memmap("validation.dat", dtype="float32", mode='w+', shape=(1000, width, height, 2))
+    val_labels = np.memmap("validation_labels.dat", dtype="float32", mode='w+', shape=(1000, 28))
 
     input_label_file = csv.DictReader(open(label_csv_path))
     ids_to_labels = _get_images_ids_to_labels(input_label_file)
     ids_to_paths = _get_images_ids_to_paths(imgs_paths)
 
-    total = sum(map(lambda x: len(x) if isinstance(x, list) else 1, ids_to_paths.values()))
     i = 0
-    pbar = tqdm(desc="Loading images", total=total)
+    pbar = tqdm(desc="Loading images")
     for img_id, path in ids_to_paths.items():
-        if isinstance(path, list):
-            for p in path:
-                img = load_img(p)
+        if img_id in training_idxs:
+            if isinstance(path, list):
+                for p in path:
+                    img = load_img(p)
+                    img_array = img_to_array(img)
+                    if i >= train.shape[0]:
+                        train.resize((train.shape[0]+1, width, height, 2))
+                        train_labels((train.shape[0]+1, 28))
+                    train[i, :, :]  = img_array[:, :, :2]
+                    train_labels[i, :] = ids_to_labels[img_id]
+                    i += 1
+                    pbar.update(1)
+            else:
+                img = load_img(path)
                 img_array = img_to_array(img)
-                data[i, :, :]  = img_array[:, :, :2]
-                labels[i, :] = ids_to_labels[img_id]
+                train[i, :, :]  = img_array[:, :, :2]
+                train_labels[i, :] = ids_to_labels[img_id]
                 i += 1
                 pbar.update(1)
 
-        else:
-            img = load_img(path)
-            img_array = img_to_array(img)
-            data[i, :, :]  = img_array[:, :, :2]
-            labels[i, :] = ids_to_labels[img_id]
-            i += 1
-            pbar.update(1)
-
     pbar.close()
 
-    return data, labels
+    i = 0
+    pbar = tqdm(desc="Loading images")
+    for img_id, path in ids_to_paths.items():
+        if img_id in validation_idxs:
+            if isinstance(path, list):
+                for p in path:
+                    img = load_img(p)
+                    img_array = img_to_array(img)
+                    if i >= val.shape[0]:
+                        val.resize((val.shape[0]+1, width, height, 2))
+                        val_labels((val.shape[0]+1, 28))
+                    val[i, :, :]  = img_array[:, :, :2]
+                    val_labels[i, :] = ids_to_labels[img_id]
+                    i += 1
+                    pbar.update(1)
+            else:
+                img = load_img(path)
+                img_array = img_to_array(img)
+                if i >= val.shape[0]:
+                    val.resize((val.shape[0]+1, width, height, 2))
+                    val_labels((val.shape[0]+1, 28))
+                val[i, :, :]  = img_array[:, :, :2]
+                val_labels[i, :] = ids_to_labels[img_id]
+                i += 1
+                pbar.update(1)
+
+    pbar.close()
 
 
 def _get_images_ids_to_labels(input_file):
@@ -98,3 +148,7 @@ def _parse_label(target):
         label[0, int(l)] = 1    
     
     return label
+
+
+if __name__ == "__main__":
+    main()
