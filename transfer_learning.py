@@ -9,11 +9,11 @@ matplotlib.use("TKAgg",warn=False, force=True)
 
 import matplotlib.pyplot as plt
 from keras import Model
-from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
+from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint, Callback
 from keras.layers import Dense
 from deepyeast.models import DeepYeast
 from sklearn import model_selection
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score 
 
 from load_dataset import load_dataset_rg
 
@@ -65,6 +65,8 @@ def main(
     X_val -= 0.5
     X_val *= 2. 
 
+    custom_val_callback = CustomValidationCallback()
+
     if use_focal:
         model.compile(
             loss=[_focal_loss(gamma=2,alpha=0.75)],
@@ -84,6 +86,7 @@ def main(
         epochs=100,
         validation_data=(X_val, y_val),
         callbacks=[
+            custom_val_callback,
             # TensorBoard(log_dir=log_path, write_graph=True),
             EarlyStopping(monitor="val_loss", min_delta=0, patience=10, verbose=0, mode="auto"),
             ModelCheckpoint(CHECKPOINT_PATH, monitor="val_loss", verbose=1, save_best_only=True, mode="auto"),
@@ -92,6 +95,18 @@ def main(
 
     plot_history(history)
 
+
+
+class CustomValidationCallback(Callback):
+
+    def on_epoch_end(self, epoch, logs={}):
+        threshold = 0.1
+        x_val = self.validation_data[0]
+        y_true = self.validation_data[1]
+        y_pred = self.model.predict(x_val)
+        f1 = f1_score(y_true, (y_pred > threshold).astype(int), average='macro')
+        logs['val_f1_custom'] = f1
+        print('Epoch %05d: custom f1 score %0.3f' % (epoch + 1, round(f1, 3))) 
 
 
 def plot_history(history):
