@@ -15,7 +15,6 @@ from deepyeast.models import DeepYeast
 from sklearn import model_selection
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score 
 
-from load_dataset import load_dataset_rg
 
 CHECKPOINT_PATH="weights-{epoch:02d}-{loss:.4f}.hdf5"
 
@@ -24,13 +23,9 @@ logging.getLogger().setLevel(logging.INFO)
 
 @click.command(help="Fine tune the DeepYeast model.")
 @click.option("-w", "--weights-path", prompt=True, type=str)
-@click.option("-i", "--dataset-path", prompt=True, type=str)
-@click.option("-l", "--labels-path", prompt=True, type=str)
 @click.option('--use-focal', '-f', is_flag=True)
 def main(
     weights_path: str,
-    dataset_path: str,
-    labels_path: str,
     use_focal: bool,
 ) -> None:
     logging.info("Loading base model")
@@ -39,23 +34,20 @@ def main(
 
     # add a new classification head
     relu5_features = base_model.get_layer("relu5").output
-    scores = Dense(28, activation="sigmoid")(relu5_features)
-    model = Model(inputs=base_model.input, outputs=scores)
+    if not use_focal:
+        scores = Dense(28, activation="sigmoid")(relu5_features)
+        model = Model(inputs=base_model.input, outputs=scores)
+    else:
+        model = Model(inputs=base_model.input, outputs=relu5_features)
 
     # fine-tune only fully-connected layers, freeze others
     # 23
-    for layer in model.layers[:23]:
-        layer.trainable = False
 
-    if dataset_path.endswith(".dat") and labels_path.endswith(".dat"):
-        X = np.memmap(dataset_path, dtype='float32', mode='r', shape=(638716, 64, 64, 2))
-        y = np.memmap(labels_path, dtype='float32', mode='r', shape=(638716, 28))
-    else:
-        imgs_paths = [os.path.join(dataset_path, f) for f in os.listdir(dataset_path) if f.endswith(".png")]
-        X, y = load_dataset_rg(imgs_paths, labels_path, 64, 64)
+    X_train = np.memmap("training.dat", dtype='float32', mode='r+', shape=(510737, 64, 64, 2))
+    y_train = np.memmap("training_labels.dat", dtype='float32', mode='r+', shape=(510737, 28))
 
-    X_train, X_val_test, y_train, y_val_test = model_selection.train_test_split(X, y, test_size=0.2, shuffle=True, random_state=42)
-    X_val, _, y_val, _ = model_selection.train_test_split(X_val_test, y_val_test, test_size=0.5, shuffle=True, random_state=42)
+    X_val = np.memmap("validation.dat", dtype='float32', mode='r+', shape=(127979, 64, 64, 2))
+    y_val = np.memmap("validation_labels.dat", dtype='float32', mode='r+', shape=(127979, 28))
     
     X_train /= 255.
     X_train -= 0.5
@@ -70,19 +62,19 @@ def main(
     if use_focal:
         model.compile(
             loss=[_focal_loss(gamma=2,alpha=0.75)],
-            optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9, nesterov=True),
+            optimizer=keras.optimizers.SGD(lr=0.001, momentum=0.9, nesterov=True),
             metrics=["accuracy"],
         )
     else:
         model.compile(
-            loss=keras.losses.categorical_crossentropy,
-            optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9, nesterov=True),
+            loss=keras.losses.binary_crossentropy,
+            optimizer=keras.optimizers.SGD(lr=0.001, momentum=0.9, nesterov=True),
             metrics=["accuracy"],
         )
 
     history = model.fit(
         X_train, y_train,
-        batch_size=1024,
+        batch_size=64,
         epochs=100,
         validation_data=(X_val, y_val),
         callbacks=[
@@ -100,13 +92,18 @@ def main(
 class CustomValidationCallback(Callback):
 
     def on_epoch_end(self, epoch, logs={}):
-        threshold = 0.1
+        thresholds =  0.2
         x_val = self.validation_data[0]
         y_true = self.validation_data[1]
         y_pred = self.model.predict(x_val)
-        f1 = f1_score(y_true, (y_pred > threshold).astype(int), average='macro')
+       
+        max_val = np.max(y_pred)
+        val_predict = y_pred > (0.65 * max_val)
+        
+        f1 = f1_score(y_true, val_predict, average='macro')
+         
         logs['val_f1_custom'] = f1
-        print('Epoch %05d: custom f1 score %0.3f' % (epoch + 1, round(f1, 3))) 
+        print('Epoch {}: custom f1 score {}'.format(epoch + 1, f1)) 
 
 
 def plot_history(history):
