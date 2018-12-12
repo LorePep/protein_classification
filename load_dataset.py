@@ -14,8 +14,8 @@ from keras.models import Model
 from keras.preprocessing.image import img_to_array, load_img
 from tqdm import tqdm
 
-DEFAULT_WIDTH = 512
-DEFAULT_HEIGHT = 512
+DEFAULT_WIDTH = 64
+DEFAULT_HEIGHT = 64
 
 NUM_CLASSES = 28
 
@@ -41,16 +41,14 @@ def create_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, he
     with open("val_idxs.hkl") as f:
         validation_idxs = hickle.load(f)
 
-    train_dim = _get_dim(training_idxs, imgs_paths)
-    print("getting training of size {}".format(train_dim))
-    val_dim = _get_dim(validation_idxs, imgs_paths)
-    print("getting validation of size {}".format(validation_idxs))
-    
-    train = np.memmap("training.dat", dtype="float32", mode='w', shape=(train_dim, width, height, 2))
-    train_labels = np.memmap("training_labels.dat", dtype="float32", mode='w', shape=(train_dim, 28))
+    training_idxs.remove("ad17b4f6-bba8-11e8-b2ba-ac1f6b6435d0")
 
-    val = np.memmap("validation.dat", dtype="float32", mode='w', shape=(val_dim, width, height, 2))
-    val_labels = np.memmap("validation_labels.dat", dtype="float32", mode='w', shape=(val_dim, 28))
+    
+    train = np.memmap("training.dat", dtype="float32", mode='w+', shape=(510737, width, height, 2))
+    train_labels = np.memmap("training_labels.dat", dtype="float32", mode='w+', shape=(510737, 28))
+
+    val = np.memmap("validation.dat", dtype="float32", mode='w+', shape=(127979, width, height, 2))
+    val_labels = np.memmap("validation_labels.dat", dtype="float32", mode='w+', shape=(127979, 28))
 
     input_label_file = csv.DictReader(open(label_csv_path))
     ids_to_labels = _get_images_ids_to_labels(input_label_file)
@@ -105,10 +103,10 @@ def create_dataset_rg(imgs_paths, label_csv_path, width: int = DEFAULT_WIDTH, he
 
     pbar.close()
 
-    with open("train_actual_idxs.hkl") as f:
+    with open("train_actual_idxs.hkl", "w") as f:
         hickle.dump(train_idx_list, f)
     
-    with open("val_actual_idxs.hkl") as f:
+    with open("val_actual_idxs.hkl", "w") as f:
         hickle.dump(val_idx_list, f)
 
 
