@@ -11,22 +11,16 @@ from scipy.optimize import fmin_l_bfgs_b, basinhopping
 from keras import Model
 from keras.layers import Dense
 from sklearn.metrics import f1_score
-from tabulate import tabulate
 from timeit import default_timer as timer
 
-from load_dataset import load_dataset_rg
 
 logging.getLogger().setLevel(logging.INFO)
 
 @click.command(help="Analyse model results.")
 @click.option("-w", "--weights-path", prompt=True, type=str)
-@click.option("-i", "--dataset-path", prompt=True, type=str)
-@click.option("-l", "--labels-path", prompt=True, type=str)
 @click.option("-b", "--batch-size", prompt=True, type=int)
 def main(
     weights_path: str,
-    dataset_path: str,
-    labels_path: str,
     batch_size: int,
 ) -> None:
     logging.info("Loading base model")
@@ -38,50 +32,20 @@ def main(
     model = Model(inputs=base_model.input, outputs=scores)
 
     model.load_weights(weights_path)
-
-    logging.info("loading data")
-    if dataset_path.endswith(".dat") and labels_path.endswith(".dat"):
-        X = np.memmap(dataset_path, dtype='float32', mode='r', shape=(638716, 64, 64, 2))
-        y = np.memmap(labels_path, dtype='float32', mode='r', shape=(638716, 28))
-    else:
-        imgs_paths = [os.path.join(dataset_path, f) for f in os.listdir(dataset_path) if f.endswith(".png")]
-        X, y = load_dataset_rg(imgs_paths, labels_path, 64, 64)
-
-    X_train, X_val_test, y_train, y_val_test = model_selection.train_test_split(X, y, test_size=0.2, shuffle=True, random_state=42)
-    X_val, X_test, y_val, y_test = model_selection.train_test_split(X_val_test, y_val_test, test_size=0.5, shuffle=True, random_state=42)
     
-    X_train /= 255.
-    X_train -= 0.5
-    X_train *= 2.
-
+    X_val = np.memmap("validation.dat", dtype='float32', mode='r+', shape=(127979, 64, 64, 2))
+    y_val = np.memmap("validation_labels.dat", dtype='float32', mode='r+', shape=(127979, 28))
+    
     X_val /= 255.
     X_val -= 0.5
     X_val *= 2. 
 
-    X_test /= 255.
-    X_test -= 0.5
-    X_test *= 2.
-    
-    logging.info("running training set")
-    y_pred_train = model.predict(X_train, batch_size=batch_size, verbose=1, steps=None)
     logging.info("running validation set")
     y_pred_val = model.predict(X_val, batch_size=1024, verbose=1, steps=None)
-    logging.info("running test set")
-    y_pred_test = model.predict(X_test, batch_size=1024, verbose=1, steps=None)
 
-    f1_train, th_train = best_f2_score(y_train, y_pred_train)
     f1_val, th_val = best_f2_score(y_val, y_pred_val)
 
-    y_pred_test = _apply_thresholds(y_pred_test, th_val)
-
-    f1_test = f1_score(y_test, y_pred_test, average="macro")  
-
-    print(tabulate([
-        ["Training", "{0:.2f}".format(f1_train)],
-        ["Validation", "{0:.2f}".format(f1_val)],
-        ["Test", "{0:.2f}".format(f1_test)],
-        ], headers=["Dataset", "F1_macro"]))
-
+    print(f1_val, th_val)
 
 
 def best_f2_score(true_labels, predictions):
