@@ -5,7 +5,6 @@ import click
 import keras
 import numpy as np
 from deepyeast.models import DeepYeast
-from sklearn.metrics import fbeta_score
 from sklearn import model_selection
 from scipy.optimize import fmin_l_bfgs_b, basinhopping
 from keras import Model
@@ -52,7 +51,7 @@ def best_f2_score(true_labels, predictions):
 
     def f_neg(threshold):
         ## Scipy tries to minimize the function so we must get its inverse
-        return - fbeta_score(true_labels, predictions > threshold, beta=2, average='samples')
+        return - f1_score(true_labels, predictions > threshold, average="macro")
 
     # Initialization of best threshold search
     thr_0 = [0.20] * true_labels.shape[1]
